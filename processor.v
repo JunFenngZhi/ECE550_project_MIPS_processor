@@ -133,7 +133,7 @@ module processor(
 	 assign is_sub = is_alu & ~ALUop[4] & ~ALUop[3] & ~ALUop[2] & ~ALUop[1] & ALUop[0];  //ALU_op:00001
 	 
 	 //Assign sign extension immediate
-	 assign sx_N[31:16] = q_imem[16] ? 16'hFFFF : 16h'0000;
+	 assign sx_N[31:16] = q_imem[16] ? 16'hFFFF : 16'h0000;
 	 assign sx_N[15:0] = q_imem[15:0];
 	 
 	 /**********Step3: Operand Fetch************/
