@@ -91,5 +91,81 @@ module processor(
     input [31:0] data_readRegA, data_readRegB;
 
     /* YOUR CODE STARTS HERE */
+	 //wire declaration
+	 wire[31:0] pc, pc_next, data_operandB, data_result, sx_N, ovf_label;
+	 wire[4:0] Opcode, ALU_op, rd, rt, shamt;
+	 wire is_alu, is_addi, is_add, is_sub, is_sw, is_lw, overflow, is_ovf, is_add_ovf, is_sub_ovf, is_addi_ovf, isNotEqual, isLessThan;
+	 
+	 
+	 /**********Step1: Instruction Fetch************/
+	 pc instance_pc(.clk(clock), .reset(reset), .pc_next(pc_next), .pc(pc)); // pc_next->pc
+	 
+	 
+	 //Tell I-Mem the address to fetch the instruction
+	 assign address_imem = pc[11:0];
+	 
+	 /**********Step2: Decode**********/
+	 
+	 //Assign the Opcode, rd, rs, rt
+	 assign Opcode = q_imem[31:27];
+	 assign rd = q_imem[26:22];
+	 assign rs = q_imem[21:17];
+	 assign rt = q_imem[16:12];
+	 
+	 
+	 
+	 //Assign the flag
+	
+	 assign is_alu = ~Opcode[4] & ~Opcode[3] & ~Opcode[2] & ~Opcode[1] & ~Opcode[0];  //Opcode:00000
+	 assign is_addi = ~Opcode[4] & ~Opcode[3] & Opcode[2] & ~Opcode[1] & Opcode[0]; //Opcode:00101
+	 assign is_lw = ~Opcode[4] & ~Opcode[3] & Opcode[2] & Opcode[1] & Opcode[0]; //Opcode:00111
+	 assign is_sw = ~Opcode[4] & Opcode[3] & ~Opcode[2] & ~Opcode[1] & ~Opcode[0]; //Opcode:01000
+	 
+	 
+	 //Assign the ALU_op
+	 assign ALU_op = is_alu ? q_imem[6:2] : 5'd0;
+	 
+	 //Assign shift amount
+	 assign shamt = is_alu ? q_imem[11:7] : 5'd0;
+	 
+	 //Assign add, sub flag
+	 assign is_add = is_alu & ~ALUop[4] & ~ALUop[3] & ~ALUop[2] & ~ALUop[1] & ~ALUop[0]; //ALU_op:00000
+	 assign is_sub = is_alu & ~ALUop[4] & ~ALUop[3] & ~ALUop[2] & ~ALUop[1] & ALUop[0];  //ALU_op:00001
+	 
+	 //Assign sign extension immediate
+	 assign sx_N[31:16] = q_imem[16] ? 16'hFFFF : 16h'0000;
+	 assign sx_N[15:0] = q_imem[15:0];
+	 
+	 /**********Step3: Operand Fetch************/
+	 assign data_operandB = (is_addi | is_lw | is_sw) ? sx_N : data_readRegB;
+	 
+	 
+	 /**********Step4: Execute *************/
+	 alu instance_alu(data_readRegA, data_operandB, ALU_op, shamt, data_result, isNotEqual, isLessThan, overflow);
+	 
+	 assign is_add_ovf = overflow & is_add;
+	 assign is_sub_ovf = overflow & is_sub;
+	 assign is_addi_ovf = overflow & is_addi;
+	 assign is_ovf = is_add_ovf | is_sub_ovf | is_addi_ovf;
+	 assign ovf_label = is_ovf ? (is_add ? 32'd1 : (is_addi ? 32'd2 : 32'd3)) : 32'd0;
+	 
+	 
+	 
+	 /**********Step5 : Result Stores**********/
+	 //Data Memory
+	 assign address_dmem = data_result[11:0];
+	 assign data = data_readRegB;
+	 assign wren = is_sw;
+	 
+	 //Register File
+	 assign ctrl_readRegA = rs;
+	 assign ctrl_readRegB = is_sw ? rd : rt;
+	 assign ctrl_writeReg = is_ovf ? 5d'30 : rd; 
+	 assign data_writeReg = is_ovf ? ovf_label :(is_lw ? q_dmem : data_result);
+	 
+	 /**********Step6 : Next Instruction***********/
+	 assign pc_next = pc + 32d'1;
+	 
+	 
 
 endmodule
