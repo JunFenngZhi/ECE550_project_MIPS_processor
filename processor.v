@@ -92,13 +92,15 @@ module processor(
 
     /* YOUR CODE STARTS HERE */
 	 //wire declaration
-	 wire[31:0] pc, pc_next, data_operandB, data_result, sx_N, ovf_label;
-	 wire[4:0] Opcode, ALU_op, rd, rt, shamt;
-	 wire is_alu, is_addi, is_add, is_sub, is_sw, is_lw, overflow, is_ovf, is_add_ovf, is_sub_ovf, is_addi_ovf, isNotEqual, isLessThan;
+	 wire[11:0] pc, pc_next;
+	 wire[31:0] data_operandB, data_result, sx_N, ovf_label;
+	 wire[4:0] Opcode, ALU_op, rd, rs, rt, shamt;
+	 wire clock_pc, is_alu, is_addi, is_add, is_sub, is_sw, is_lw, overflow, is_ovf, is_add_ovf, is_sub_ovf, is_addi_ovf, isNotEqual, isLessThan;
 	 
 	 
 	 /**********Step1: Instruction Fetch************/
-	 pc instance_pc(.clk(clock), .reset(reset), .pc_next(pc_next), .pc(pc)); // pc_next->pc
+	 Divider clk_div_8(.reset(reset), .in_clk(clock), .out_clk(clock_pc));
+	 pc instance_pc(.clk(clock_pc), .reset(reset), .pc_next(pc_next), .pc(pc)); // pc_next->pc
 	 
 	 
 	 //Tell I-Mem the address to fetch the instruction
@@ -115,11 +117,10 @@ module processor(
 	 
 	 
 	 //Assign the flag
-	
-	 assign is_alu = ~Opcode[4] & ~Opcode[3] & ~Opcode[2] & ~Opcode[1] & ~Opcode[0];  //Opcode:00000
-	 assign is_addi = ~Opcode[4] & ~Opcode[3] & Opcode[2] & ~Opcode[1] & Opcode[0]; //Opcode:00101
-	 assign is_lw = ~Opcode[4] & ~Opcode[3] & Opcode[2] & Opcode[1] & Opcode[0]; //Opcode:00111
-	 assign is_sw = ~Opcode[4] & Opcode[3] & ~Opcode[2] & ~Opcode[1] & ~Opcode[0]; //Opcode:01000
+	 assign is_alu = Opcode == 5'b0000_0 ? 1'b1:1'b0;  //Opcode:00000
+	 assign is_addi = Opcode == 5'b0010_1 ? 1'b1:1'b0; //Opcode:00101
+	 assign is_lw = Opcode == 5'b0011_1 ? 1'b1:1'b0; //Opcode:00111
+	 assign is_sw = Opcode == 5'b0010_0 ? 1'b1:1'b0; //Opcode:01000
 	 
 	 
 	 //Assign the ALU_op
@@ -129,8 +130,8 @@ module processor(
 	 assign shamt = is_alu ? q_imem[11:7] : 5'd0;
 	 
 	 //Assign add, sub flag
-	 assign is_add = is_alu & ~ALUop[4] & ~ALUop[3] & ~ALUop[2] & ~ALUop[1] & ~ALUop[0]; //ALU_op:00000
-	 assign is_sub = is_alu & ~ALUop[4] & ~ALUop[3] & ~ALUop[2] & ~ALUop[1] & ALUop[0];  //ALU_op:00001
+	 assign is_add = (is_alu & ALU_op == 00000) ? 1'b1:1'b0; //ALU_op:00000
+	 assign is_sub = (is_alu & ALU_op == 00001) ? 1'b1:1'b0;  //ALU_op:00001
 	 
 	 //Assign sign extension immediate
 	 assign sx_N[31:16] = q_imem[16] ? 16'hFFFF : 16'h0000;
@@ -155,17 +156,62 @@ module processor(
 	 //Data Memory
 	 assign address_dmem = data_result[11:0];
 	 assign data = data_readRegB;
-	 assign wren = is_sw;
+	 
+	 wire counter_out;
+	 counter my_counter(.clock(~clock), .reset(clock_pc), .out(counter_out));
+	 assign wren = is_sw & counter_out;
 	 
 	 //Register File
 	 assign ctrl_readRegA = rs;
 	 assign ctrl_readRegB = is_sw ? rd : rt;
-	 assign ctrl_writeReg = is_ovf ? 5d'30 : rd; 
+	 assign ctrl_writeReg = is_ovf ? 5'd30 : rd; 
 	 assign data_writeReg = is_ovf ? ovf_label :(is_lw ? q_dmem : data_result);
+	 assign ctrl_writeEnable = is_sw ? 1'b0 : 1'b1;
 	 
 	 /**********Step6 : Next Instruction***********/
-	 assign pc_next = pc + 32d'1;
+	 assign pc_next = pc + 12'd1;
 	 
 	 
 
 endmodule
+
+
+
+module counter (clock, reset, out);
+	input clock, reset;
+	output reg out;
+	
+	reg[2:0] count;
+	
+	initial  begin
+		out = 0;
+		count = 3'b0;
+	end
+
+	always@(posedge clock or posedge reset) begin
+		if(reset) begin
+			count <= 3'b0;
+			out <= 0;
+		end
+		
+		else begin
+			if (count < 7) begin
+				count <= count + 3'b1;
+			end
+			
+			else begin
+				out <= 1;
+				count <= 3'b0;
+			end
+			
+		end
+		
+	end
+
+
+
+endmodule
+
+
+
+

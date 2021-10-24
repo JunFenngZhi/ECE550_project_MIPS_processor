@@ -19,6 +19,13 @@ module skeleton(clock, reset, imem_clock, dmem_clock, processor_clock, regfile_c
         based on proper functioning with this clock.
     */
     output imem_clock, dmem_clock, processor_clock, regfile_clock;
+	 
+	 wire clk_div8;
+	 Divider clk_div_8(.reset(reset), .in_clk(clock), .out_clk(clk_div8));
+	 assign imem_clock = ~clock; 
+	 assign dmem_clock = ~clock;
+	 assign processor_clock = clock;
+	 assign regfile_clock = clk_div8;
 
     /** IMEM **/
     // Figure out how to generate a Quartus syncram component and commit the generated verilog file.
@@ -27,7 +34,7 @@ module skeleton(clock, reset, imem_clock, dmem_clock, processor_clock, regfile_c
     wire [31:0] q_imem;
     imem my_imem(
         .address    (address_imem),            // address of data
-        .clock      (imem_clock),                  // you may need to invert the clock
+        .clock      (imem_clock),              // you may need to invert the clock
         .q          (q_imem)                   // the raw instruction
     );
 
@@ -39,11 +46,11 @@ module skeleton(clock, reset, imem_clock, dmem_clock, processor_clock, regfile_c
     wire wren;
     wire [31:0] q_dmem;
     dmem my_dmem(
-        .address    (/* 12-bit wire */),       // address of data
-        .clock      (dmem_clock),                  // may need to invert the clock
-        .data	    (/* 32-bit data in */),    // data you want to write
-        .wren	    (/* 1-bit signal */),      // write enable
-        .q          (/* 32-bit data out */)    // data from dmem
+        .address   (address_dmem),       	  // address of data
+        .clock     (dmem_clock),            // may need to invert the clock
+        .data	    (data),                  // data you want to write
+        .wren	    (wren),                  // write enable
+        .q          (q_dmem)                // data from dmem
     );
 
     /** REGFILE **/
@@ -67,7 +74,7 @@ module skeleton(clock, reset, imem_clock, dmem_clock, processor_clock, regfile_c
     /** PROCESSOR **/
     processor my_processor(
         // Control signals
-        processor_clock,                          // I: The master clock
+        processor_clock,                // I: The master clock
         reset,                          // I: A reset signal
 
         // Imem
