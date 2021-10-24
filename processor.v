@@ -69,7 +69,10 @@ module processor(
     ctrl_readRegB,                  // O: Register to read from port B of regfile
     data_writeReg,                  // O: Data to write to for regfile
     data_readRegA,                  // I: Data from port A of regfile
-    data_readRegB                   // I: Data from port B of regfile
+    data_readRegB,                   // I: Data from port B of regfile
+	 
+	 //test
+	 overflow
 );
     // Control signals
     input clock, reset;
@@ -95,8 +98,8 @@ module processor(
 	 wire[11:0] pc, pc_next;
 	 wire[31:0] data_operandB, data_result, sx_N, ovf_label;
 	 wire[4:0] Opcode, ALU_op, rd, rs, rt, shamt;
-	 wire clock_pc, is_alu, is_addi, is_add, is_sub, is_sw, is_lw, overflow, is_ovf, is_add_ovf, is_sub_ovf, is_addi_ovf, isNotEqual, isLessThan;
-	 
+	 wire clock_pc, is_alu, is_addi, is_add, is_sub, is_sw, is_lw, is_ovf, is_add_ovf, is_sub_ovf, is_addi_ovf, isNotEqual, isLessThan;
+	 output overflow;
 	 
 	 /**********Step1: Instruction Fetch************/
 	 Divider clk_div_8(.reset(reset), .in_clk(clock), .out_clk(clock_pc));
@@ -174,6 +177,7 @@ module processor(
 	 
 
 endmodule
+
 
 
 

@@ -9,8 +9,10 @@
  * inspect which signals the processor tries to assert when.
  */
 
-module skeleton(clock, reset, imem_clock, dmem_clock, processor_clock, regfile_clock);
-    input clock, reset;
+module skeleton(clock, reset, imem_clock, dmem_clock, processor_clock, regfile_clock,
+					 data_writeReg, data_readRegA, data_readRegB, PC_clk,
+					 ctrl_writeReg, ctrl_readRegA, ctrl_readRegB,address_imem,overflow);//test
+					 input clock, reset;  // reset上跳沿触发
     /* 
         Create four clocks for each module from the original input "clock".
         These four outputs will be used to run the clocked elements of your processor on the grading side. 
@@ -19,7 +21,15 @@ module skeleton(clock, reset, imem_clock, dmem_clock, processor_clock, regfile_c
         based on proper functioning with this clock.
     */
     output imem_clock, dmem_clock, processor_clock, regfile_clock;
+	 output overflow;
 	 
+	 /* Test */
+	 output wire [31:0] data_writeReg;
+    output wire [31:0] data_readRegA, data_readRegB;
+	 output wire PC_clk;
+	 Divider clk_div_8_test(.reset(reset), .in_clk(processor_clock), .out_clk(PC_clk));
+	 
+	 /* Divide clk to different parts */
 	 wire clk_div8;
 	 Divider clk_div_8(.reset(reset), .in_clk(clock), .out_clk(clk_div8));
 	 assign imem_clock = ~clock; 
@@ -30,7 +40,7 @@ module skeleton(clock, reset, imem_clock, dmem_clock, processor_clock, regfile_c
     /** IMEM **/
     // Figure out how to generate a Quartus syncram component and commit the generated verilog file.
     // Make sure you configure it correctly!
-    wire [11:0] address_imem;
+    output wire [11:0] address_imem;
     wire [31:0] q_imem;
     imem my_imem(
         .address    (address_imem),            // address of data
@@ -56,9 +66,8 @@ module skeleton(clock, reset, imem_clock, dmem_clock, processor_clock, regfile_c
     /** REGFILE **/
     // Instantiate your regfile
     wire ctrl_writeEnable;
-    wire [4:0] ctrl_writeReg, ctrl_readRegA, ctrl_readRegB;
-    wire [31:0] data_writeReg;
-    wire [31:0] data_readRegA, data_readRegB;
+    output wire [4:0] ctrl_writeReg, ctrl_readRegA, ctrl_readRegB;
+
     regfile my_regfile(
         regfile_clock,
         ctrl_writeEnable,
@@ -95,6 +104,7 @@ module skeleton(clock, reset, imem_clock, dmem_clock, processor_clock, regfile_c
         data_writeReg,                  // O: Data to write to for regfile
         data_readRegA,                  // I: Data from port A of regfile
         data_readRegB                   // I: Data from port B of regfile
+		  overflow
     );
 
 endmodule

@@ -3,22 +3,21 @@ module Divider(
 	input in_clk,
 	output reg out_clk  //分频后的输出信号
 );
-	parameter IN_Freq = 50000000;
-	parameter OUT_Freq = 50000000/8;
 
 	reg[3:0] count;
+	
 	initial begin
 		count = 0;
 		out_clk = 0;
 	end
 	
-	always@(posedge in_clk or negedge reset) begin
-		if(reset == 0) begin
+	always@(posedge in_clk or posedge reset) begin
+		if(reset == 1) begin
 			out_clk <= 0;
 			count <= 0;
 		end
 		else begin
-			if(count < (IN_Freq / 2 * OUT_Freq)) 
+			if(count < 3)   // 8分频
 				count <= count + 4'b1;
 			else begin
 				count <= 0;
@@ -28,3 +27,5 @@ module Divider(
 	end
 
 endmodule
+
+
