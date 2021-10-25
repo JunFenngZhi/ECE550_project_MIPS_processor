@@ -72,7 +72,9 @@ module processor(
     data_readRegB,                   // I: Data from port B of regfile
 	 
 	 //test
-	 overflow
+	 overflow,
+	 counter_out,
+	 is_sw
 );
     // Control signals
     input clock, reset;
@@ -98,8 +100,8 @@ module processor(
 	 wire[11:0] pc, pc_next;
 	 wire[31:0] data_operandB, data_result, sx_N, ovf_label;
 	 wire[4:0] Opcode, ALU_op, rd, rs, rt, shamt;
-	 wire clock_pc, is_alu, is_addi, is_add, is_sub, is_sw, is_lw, is_ovf, is_add_ovf, is_sub_ovf, is_addi_ovf, isNotEqual, isLessThan;
-	 output overflow;
+	 wire clock_pc, is_alu, is_addi, is_add, is_sub, is_lw, is_ovf, is_add_ovf, is_sub_ovf, is_addi_ovf, isNotEqual, isLessThan;
+	 output overflow, is_sw;
 	 
 	 /**********Step1: Instruction Fetch************/
 	 Divider clk_div_8(.reset(reset), .in_clk(clock), .out_clk(clock_pc));
@@ -122,8 +124,8 @@ module processor(
 	 //Assign the flag
 	 assign is_alu = Opcode == 5'b0000_0 ? 1'b1:1'b0;  //Opcode:00000
 	 assign is_addi = Opcode == 5'b0010_1 ? 1'b1:1'b0; //Opcode:00101
-	 assign is_lw = Opcode == 5'b0011_1 ? 1'b1:1'b0; //Opcode:00111
-	 assign is_sw = Opcode == 5'b0010_0 ? 1'b1:1'b0; //Opcode:01000
+	 assign is_sw = Opcode == 5'b0011_1 ? 1'b1:1'b0; //Opcode:00111
+	 assign is_lw = Opcode == 5'b0100_0 ? 1'b1:1'b0; //Opcode:01000
 	 
 	 
 	 //Assign the ALU_op
@@ -160,14 +162,14 @@ module processor(
 	 assign address_dmem = data_result[11:0];
 	 assign data = data_readRegB;
 	 
-	 wire counter_out;
-	 counter my_counter(.clock(~clock), .reset(clock_pc), .out(counter_out));
+	 output wire counter_out;
+	 counter my_counter(.clock(~clock),.out(counter_out));
 	 assign wren = is_sw & counter_out;
 	 
 	 //Register File
 	 assign ctrl_readRegA = rs;
 	 assign ctrl_readRegB = is_sw ? rd : rt;
-	 assign ctrl_writeReg = is_ovf ? 5'd30 : rd; 
+	 assign ctrl_writeReg = q_imem == 32'd0 ? 5'd30 :(is_ovf ? 5'd30 : rd);    // nop指令强制ctrl_writeReg为$30,跳出闭环。
 	 assign data_writeReg = is_ovf ? ovf_label :(is_lw ? q_dmem : data_result);
 	 assign ctrl_writeEnable = is_sw ? 1'b0 : 1'b1;
 	 
@@ -180,41 +182,49 @@ endmodule
 
 
 
+// 为什么在第三个上跳沿时out=1
+module counter (clock,out);
+ input clock;
+ output reg out;
+ 
+ reg[3:0] count_0, count_1;
+ 
+ initial  begin
+	  out = 0;
+	  count_0 = 4'b0;
+	  count_1 = 4'b0;
+ end
 
-module counter (clock, reset, out);
-	input clock, reset;
-	output reg out;
-	
-	reg[2:0] count;
-	
-	initial  begin
-		out = 0;
-		count = 3'b0;
-	end
-
-	always@(posedge clock or posedge reset) begin
-		if(reset) begin
-			count <= 3'b0;
-			out <= 0;
+ always@(posedge clock) begin
+	  if(out == 1'b0) begin
+		if (count_0 < 7) begin
+			 out = 0;
+			 count_0 = count_0 + 4'b1;
 		end
-		
 		else begin
-			if (count < 7) begin
-				count <= count + 3'b1;
-			end
-			
-			else begin
-				out <= 1;
-				count <= 3'b0;
-			end
-			
+			 out = 1;
+			 count_0 = 0;
+			 count_1 = count_1 + 1;
 		end
-		
-	end
-
-
+	  end
+	  else begin
+		if(count_1 < 1) begin
+			 out = 1;
+			 count_1 = count_1 + 4'b1;
+		end
+		else begin
+			 out = 0;
+			 count_1 = 0;
+			 count_0 = count_0 + 1;
+		end
+	  end
+ end
 
 endmodule
+
+
+
+
 
 
 

@@ -2,13 +2,16 @@
 
 module skeleton_tb(ctrl_writeReg, data_writeReg, ctrl_readRegA, data_readRegA, ctrl_readRegB, data_readRegB, 
 						 imem_clock, dmem_clock, processor_clock, regfile_clock, PC_clk,
-						 address_imem,overflow);
+						 address_imem,overflow, address_dmem, data, q_dmem, wren,counter_out,is_sw);
 	
 	output[31:0] data_writeReg, data_readRegA, data_readRegB;
 	output imem_clock, dmem_clock, processor_clock, regfile_clock,PC_clk;
 	output[4:0] ctrl_writeReg, ctrl_readRegA, ctrl_readRegB;
 	output[11:0] address_imem;
-	output overflow;
+	output overflow,counter_out,is_sw;
+	output[11:0] address_dmem;
+	output[31:0] data, q_dmem;
+	output wren;
 	
 	reg clock;
 	reg reset;
@@ -22,11 +25,12 @@ module skeleton_tb(ctrl_writeReg, data_writeReg, ctrl_readRegA, data_readRegA, c
 	
 	skeleton s1 (clock, reset, imem_clock, dmem_clock, processor_clock, regfile_clock,
 					 data_writeReg, data_readRegA, data_readRegB, PC_clk,
-					 ctrl_writeReg, ctrl_readRegA, ctrl_readRegB, address_imem,overflow);  //test
-					 
+					 ctrl_writeReg, ctrl_readRegA, ctrl_readRegB, address_imem, overflow,
+					 address_dmem, data, q_dmem, wren,counter_out,is_sw);  //test
+					  
 	always #20 begin
 		if(i <= 0)
-			reset = 1'b0;
+			reset = 1'b1;
 		else
 			reset = 1'b0;
 			

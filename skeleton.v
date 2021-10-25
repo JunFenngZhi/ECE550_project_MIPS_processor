@@ -11,8 +11,9 @@
 
 module skeleton(clock, reset, imem_clock, dmem_clock, processor_clock, regfile_clock,
 					 data_writeReg, data_readRegA, data_readRegB, PC_clk,
-					 ctrl_writeReg, ctrl_readRegA, ctrl_readRegB,address_imem,overflow);//test
-					 input clock, reset;  // reset上跳沿触发
+					 ctrl_writeReg, ctrl_readRegA, ctrl_readRegB,address_imem,overflow,
+					 address_dmem, data, q_dmem, wren,counter_out,is_sw);//test
+	 input clock, reset;  // reset上跳沿触发
     /* 
         Create four clocks for each module from the original input "clock".
         These four outputs will be used to run the clocked elements of your processor on the grading side. 
@@ -21,7 +22,7 @@ module skeleton(clock, reset, imem_clock, dmem_clock, processor_clock, regfile_c
         based on proper functioning with this clock.
     */
     output imem_clock, dmem_clock, processor_clock, regfile_clock;
-	 output overflow;
+	 output overflow,counter_out,is_sw;
 	 
 	 /* Test */
 	 output wire [31:0] data_writeReg;
@@ -51,10 +52,10 @@ module skeleton(clock, reset, imem_clock, dmem_clock, processor_clock, regfile_c
     /** DMEM **/
     // Figure out how to generate a Quartus syncram component and commit the generated verilog file.
     // Make sure you configure it correctly!
-    wire [11:0] address_dmem;
-    wire [31:0] data;
-    wire wren;
-    wire [31:0] q_dmem;
+    output wire [11:0] address_dmem;
+    output wire [31:0] data;
+    output wire wren;
+    output wire [31:0] q_dmem;
     dmem my_dmem(
         .address   (address_dmem),       	  // address of data
         .clock     (dmem_clock),            // may need to invert the clock
@@ -103,8 +104,10 @@ module skeleton(clock, reset, imem_clock, dmem_clock, processor_clock, regfile_c
         ctrl_readRegB,                  // O: Register to read from port B of regfile
         data_writeReg,                  // O: Data to write to for regfile
         data_readRegA,                  // I: Data from port A of regfile
-        data_readRegB                   // I: Data from port B of regfile
-		  overflow
+        data_readRegB,                  // I: Data from port B of regfile
+		  overflow,
+		  counter_out,
+		  is_sw
     );
 
 endmodule
