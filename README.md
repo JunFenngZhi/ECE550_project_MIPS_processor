@@ -1,5 +1,8 @@
 # Simple Processor
 
+Name： **Changhao Li & Junfeng Zhi**  
+NetID： **cl580 & jz399**
+
 ### Clock Design
 As shown in the table below. Given the skeleton clock as clk, IMem and DMem will use ~clk as clock; PC and Register will divide the clk by 8 as their own clock.
 | Component | Clock   |
