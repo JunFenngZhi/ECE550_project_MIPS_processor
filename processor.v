@@ -69,7 +69,7 @@ module processor(
     ctrl_readRegB,                  // O: Register to read from port B of regfile
     data_writeReg,                  // O: Data to write to for regfile
     data_readRegA,                  // I: Data from port A of regfile
-    data_readRegB                  // I: Data from port B of regfile
+    data_readRegB                   // I: Data from port B of regfile
 );
     // Control signals
     input clock, reset;
@@ -97,13 +97,13 @@ module processor(
 	 wire[4:0] Opcode, ALU_op, rd, rs, rt, shamt;
 	 wire clock_pc, is_alu, is_addi, is_add, is_sub, is_lw, is_ovf, is_add_ovf, is_sub_ovf, is_addi_ovf, isNotEqual, isLessThan,overflow, is_sw;
 	 
+	 
 	 /**********Step1: Instruction Fetch************/
 	 Divider clk_div_8(.reset(reset), .in_clk(clock), .out_clk(clock_pc));
 	 pc instance_pc(.clk(clock_pc), .reset(reset), .pc_next(pc_next), .pc(pc)); // pc_next->pc
 	 
+	 assign address_imem = pc[11:0];  //Tell I-Mem the address to fetch the instruction
 	 
-	 //Tell I-Mem the address to fetch the instruction
-	 assign address_imem = pc[11:0];
 	 
 	 /**********Step2: Decode**********/
 	 
@@ -113,14 +113,11 @@ module processor(
 	 assign rs = q_imem[21:17];
 	 assign rt = q_imem[16:12];
 	 
-	 
-	 
 	 //Assign the flag
-	 assign is_alu = Opcode == 5'b0000_0 ? 1'b1:1'b0;  //Opcode:00000
-	 assign is_addi = Opcode == 5'b0010_1 ? 1'b1:1'b0; //Opcode:00101
-	 assign is_sw = Opcode == 5'b0011_1 ? 1'b1:1'b0; //Opcode:00111
-	 assign is_lw = Opcode == 5'b0100_0 ? 1'b1:1'b0; //Opcode:01000
-	 
+	 assign is_alu = Opcode == 5'b0000_0 ? 1'b1 : 1'b0;   //Opcode:00000
+	 assign is_addi = Opcode == 5'b0010_1 ? 1'b1 : 1'b0;  //Opcode:00101
+	 assign is_sw = Opcode == 5'b0011_1 ? 1'b1 : 1'b0; 	//Opcode:00111
+	 assign is_lw = Opcode == 5'b0100_0 ? 1'b1 : 1'b0; 	//Opcode:01000
 	 
 	 //Assign the ALU_op
 	 assign ALU_op = is_alu ? q_imem[6:2] : 5'd0;
@@ -129,12 +126,13 @@ module processor(
 	 assign shamt = is_alu ? q_imem[11:7] : 5'd0;
 	 
 	 //Assign add, sub flag
-	 assign is_add = (is_alu & ALU_op == 00000) ? 1'b1:1'b0; //ALU_op:00000
-	 assign is_sub = (is_alu & ALU_op == 00001) ? 1'b1:1'b0;  //ALU_op:00001
+	 assign is_add = (is_alu & ALU_op == 5'b0000_0) ? 1'b1:1'b0;  //ALU_op:00000
+	 assign is_sub = (is_alu & ALU_op == 5'b0000_1) ? 1'b1:1'b0;  //ALU_op:00001
 	 
 	 //Assign sign extension immediate
 	 assign sx_N[31:16] = q_imem[16] ? 16'hFFFF : 16'h0000;
 	 assign sx_N[15:0] = q_imem[15:0];
+	 
 	 
 	 /**********Step3: Operand Fetch************/
 	 assign data_operandB = (is_addi | is_lw | is_sw) ? sx_N : data_readRegB;
@@ -157,7 +155,7 @@ module processor(
 	 assign data = data_readRegB;
 	 
 	 wire counter_out;
-	 counter my_counter(.clock(~clock),.out(counter_out));
+	 counter my_counter(.clock(~clock), .insn_num(address_imem), .out(counter_out));
 	 assign wren = is_sw & counter_out;
 	 
 	 //Register File
@@ -167,6 +165,7 @@ module processor(
 	 assign data_writeReg = is_ovf ? ovf_label :(is_lw ? q_dmem : data_result);
 	 assign ctrl_writeEnable = is_sw ? 1'b0 : 1'b1;
 	 
+	 
 	 /**********Step6 : Next Instruction***********/
 	 assign pc_next = pc + 12'd1;
 	 
@@ -175,10 +174,10 @@ module processor(
 endmodule
 
 
-
-// 为什么在第三个上跳沿时out=1
-module counter (clock,out);
+// use to count posedge edge to generate wren to dmem
+module counter (clock,insn_num,out);
  input clock;
+ input[11:0] insn_num;
  output reg out;
  
  reg[3:0] count_0, count_1;
@@ -190,28 +189,32 @@ module counter (clock,out);
  end
 
  always@(posedge clock) begin
+	if(insn_num != 12'd0) begin
+ 
 	  if(out == 1'b0) begin
 		if (count_0 < 7) begin
-			 out = 0;
-			 count_0 = count_0 + 4'b1;
+			 out <= 0;
+			 count_0 <= count_0 + 4'b1;
 		end
 		else begin
-			 out = 1;
-			 count_0 = 0;
-			 count_1 = count_1 + 4'b1;
+			 out <= 1;
+			 count_0 <= 0;
+			 count_1 <= count_1 + 4'b1;
 		end
 	  end
 	  else begin
 		if(count_1 < 1) begin
-			 out = 1;
-			 count_1 = count_1 + 4'b1;
+			 out <= 1;
+			 count_1 <= count_1 + 4'b1;
 		end
 		else begin
-			 out = 0;
-			 count_1 = 0;
-			 count_0 = count_0 + 4'b1;
+			 out <= 0;
+			 count_1 <= 0;
+			 count_0 <= count_0 + 4'b1;
 		end
 	  end
+	  
+	end
  end
 
 endmodule

@@ -9,7 +9,7 @@
  * inspect which signals the processor tries to assert when.
  */
 
-module skeleton(clock, reset, imem_clock, dmem_clock, processor_clock, regfile_clock);//test
+module skeleton(clock, reset, imem_clock, dmem_clock, processor_clock, regfile_clock);
 	 input clock, reset;  // reset上跳沿触发
     /* 
         Create four clocks for each module from the original input "clock".
