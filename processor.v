@@ -91,5 +91,138 @@ module processor(
     input [31:0] data_readRegA, data_readRegB;
 
     /* YOUR CODE STARTS HERE */
+	 //wire declaration
+	 wire[11:0] pc, pc_next;
+	 wire[31:0] data_operandB, data_result, sx_N, ovf_label;
+	 wire[4:0] Opcode, ALU_op, rd, rs, rt, shamt;
+	 wire clock_pc, is_alu, is_addi, is_add, is_sub, is_lw, is_ovf, is_add_ovf, is_sub_ovf, is_addi_ovf, isNotEqual, isLessThan,overflow, is_sw;
+	 
+	 
+	 /**********Step1: Instruction Fetch************/
+	 Divider clk_div_8(.reset(reset), .in_clk(clock), .out_clk(clock_pc));
+	 pc instance_pc(.clk(clock_pc), .reset(reset), .pc_next(pc_next), .pc(pc)); // pc_next->pc
+	 
+	 assign address_imem = pc[11:0];  //Tell I-Mem the address to fetch the instruction
+	 
+	 
+	 /**********Step2: Decode**********/
+	 
+	 //Assign the Opcode, rd, rs, rt
+	 assign Opcode = q_imem[31:27];
+	 assign rd = q_imem[26:22];
+	 assign rs = q_imem[21:17];
+	 assign rt = q_imem[16:12];
+	 
+	 //Assign the flag
+	 assign is_alu = Opcode == 5'b0000_0 ? 1'b1 : 1'b0;   //Opcode:00000
+	 assign is_addi = Opcode == 5'b0010_1 ? 1'b1 : 1'b0;  //Opcode:00101
+	 assign is_sw = Opcode == 5'b0011_1 ? 1'b1 : 1'b0; 	//Opcode:00111
+	 assign is_lw = Opcode == 5'b0100_0 ? 1'b1 : 1'b0; 	//Opcode:01000
+	 
+	 //Assign the ALU_op
+	 assign ALU_op = is_alu ? q_imem[6:2] : 5'd0;
+	 
+	 //Assign shift amount
+	 assign shamt = is_alu ? q_imem[11:7] : 5'd0;
+	 
+	 //Assign add, sub flag
+	 assign is_add = (is_alu & ALU_op == 5'b0000_0) ? 1'b1:1'b0;  //ALU_op:00000
+	 assign is_sub = (is_alu & ALU_op == 5'b0000_1) ? 1'b1:1'b0;  //ALU_op:00001
+	 
+	 //Assign sign extension immediate
+	 assign sx_N[31:16] = q_imem[16] ? 16'hFFFF : 16'h0000;
+	 assign sx_N[15:0] = q_imem[15:0];
+	 
+	 
+	 /**********Step3: Operand Fetch************/
+	 assign data_operandB = (is_addi | is_lw | is_sw) ? sx_N : data_readRegB;
+	 
+	 
+	 /**********Step4: Execute *************/
+	 alu instance_alu(data_readRegA, data_operandB, ALU_op, shamt, data_result, isNotEqual, isLessThan, overflow);
+	 
+	 assign is_add_ovf = overflow & is_add;
+	 assign is_sub_ovf = overflow & is_sub;
+	 assign is_addi_ovf = overflow & is_addi;
+	 assign is_ovf = is_add_ovf | is_sub_ovf | is_addi_ovf;
+	 assign ovf_label = is_ovf ? (is_add ? 32'd1 : (is_addi ? 32'd2 : 32'd3)) : 32'd0;
+	 
+	 
+	 
+	 /**********Step5 : Result Stores**********/
+	 //Data Memory
+	 assign address_dmem = data_result[11:0];
+	 assign data = data_readRegB;
+	 
+	 wire counter_out;
+	 counter my_counter(.clock(~clock), .insn_num(address_imem), .out(counter_out));
+	 assign wren = is_sw & counter_out;
+	 
+	 //Register File
+	 assign ctrl_readRegA = rs;
+	 assign ctrl_readRegB = is_sw ? rd : rt;
+	 assign ctrl_writeReg = q_imem == 32'd0 ? 5'd30 :(is_ovf ? 5'd30 : rd);    // nop指令强制ctrl_writeReg为$30,跳出闭环。
+	 assign data_writeReg = is_ovf ? ovf_label :(is_lw ? q_dmem : data_result);
+	 assign ctrl_writeEnable = is_sw ? 1'b0 : 1'b1;
+	 
+	 
+	 /**********Step6 : Next Instruction***********/
+	 assign pc_next = pc + 12'd1;
+	 
+	 
 
 endmodule
+
+
+// use to count posedge edge to generate wren to dmem
+module counter (clock,insn_num,out);
+ input clock;
+ input[11:0] insn_num;
+ output reg out;
+ 
+ reg[3:0] count_0, count_1;
+ 
+ initial  begin
+	  out = 0;
+	  count_0 = 4'b0;
+	  count_1 = 4'b0;
+ end
+
+ always@(posedge clock) begin
+	if(insn_num != 12'd0) begin
+ 
+	  if(out == 1'b0) begin
+		if (count_0 < 7) begin
+			 out <= 0;
+			 count_0 <= count_0 + 4'b1;
+		end
+		else begin
+			 out <= 1;
+			 count_0 <= 0;
+			 count_1 <= count_1 + 4'b1;
+		end
+	  end
+	  else begin
+		if(count_1 < 1) begin
+			 out <= 1;
+			 count_1 <= count_1 + 4'b1;
+		end
+		else begin
+			 out <= 0;
+			 count_1 <= 0;
+			 count_0 <= count_0 + 4'b1;
+		end
+	  end
+	  
+	end
+ end
+
+endmodule
+
+
+
+
+
+
+
+

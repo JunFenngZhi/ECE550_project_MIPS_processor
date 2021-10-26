@@ -10,6 +10,11 @@ module alu(data_operandA, data_operandB, ctrl_ALUopcode,
 	reg signed[31:0] inner_result;
 	reg inner_cout;
 	
+	initial begin
+		inner_result = 32'b0;
+		inner_cout = 1'b0;
+	end
+	
 	assign inner_A = data_operandA;
 	assign inner_B = data_operandB;
 	assign data_result = inner_result;
