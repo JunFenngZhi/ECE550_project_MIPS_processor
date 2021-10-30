@@ -1,8 +1,0 @@
-# 忽略所有编译过程中的文件以及仿真结果文件，只保留 *.v和*.qpf和*.qsf
-/*
-!*.v
-!*.qpf
-!*.qsf
-!.README.md
-!.gitignore
-!.gitattributes
