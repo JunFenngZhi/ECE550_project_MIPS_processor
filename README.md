@@ -31,7 +31,7 @@ We use ALU to execute on OperandA and OperandB, details in processor.v
 We store results in Data Memmory and Register Files according to instruction type, details in processor.v
 
 ### Next Instruction
-We update pc, details in processor.v
+We update pc according to instruction type(j, bne, jal, jr, blt, bex, setx), details in processor.v
 
 ### Overflow Control
 Here, we treat overflow as an exception. Overflow Label which indicate what operation causes overflow will be writtend into `$30`. Exceptions writing takes precedent in our design.
