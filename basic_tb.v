@@ -7,6 +7,9 @@ reg reset, test, t_ctrl_writeEnable;
 reg [4:0] t_ctrl_writeReg, t_ctrl_readRegA, t_ctrl_readRegB;
 reg [31:0]t_data_writeReg;
 wire [31:0] t_data_readRegA, t_data_readRegB;
+wire o_ctrl_writeEnable;
+wire [4:0] o_ctrl_writeReg;
+wire [31:0] o_data_writeReg;
 
 reg clock;
 reg proc_done;
@@ -17,8 +20,9 @@ integer clock_count;		// How many times the clock has flipped
 integer clock_count_max;	// How many clock cycles to run
 
 // The test skeleton
-skeleton_test spooky(clock, reset, test, t_ctrl_writeEnable, proc_, t_ctrl_readRegA, t_ctrl_readRegB,
-							t_data_writeReg, t_data_readRegA, t_data_readRegB);
+skeleton_test spooky(clock, reset, test, t_ctrl_writeEnable, t_ctrl_writeReg, t_ctrl_readRegA, t_ctrl_readRegB,
+							t_data_writeReg, t_data_readRegA, t_data_readRegB,
+							o_ctrl_writeEnable, o_ctrl_writeReg, o_data_writeReg);
 
 // Begin Simulation
 initial begin
@@ -48,7 +52,19 @@ always @(posedge proc_done) begin
 		After all the insns finished, you will want to check the register file's content.
 		You can add more checks according to your test cases
 	*/
-	check_register("addi r1",1,65535);
+	 check_register("check r5",5,3);
+	 check_register("check r4",4,2);
+	 check_register("check r6",6,1);
+	 check_register("check r12",12,1);
+	 check_register("check r13",13,23);
+	 check_register("check r14",14,1);
+	 check_register("check r8",8,-1);
+	 check_register("check r10",10,1);
+	 check_register("check r18",18,2);
+	 check_register("check r19",19,1);
+	 check_register("check r20",20,2);
+	 check_register("check r21",21,2);
+	 check_register("check r22",22,3);
 
 	$display("@ece550:test:end");
 	$stop;

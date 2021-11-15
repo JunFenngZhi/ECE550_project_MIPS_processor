@@ -70,6 +70,7 @@ module processor(
     data_writeReg,                  // O: Data to write to for regfile
     data_readRegA,                  // I: Data from port A of regfile
     data_readRegB                   // I: Data from port B of regfile
+	 
 );
     // Control signals
     input clock, reset;
@@ -96,7 +97,6 @@ module processor(
 	 wire[31:0] data_operandA, data_operandB, data_result, sx_N, ovf_label;
 	 wire[4:0] Opcode, ALU_op, rd, rs, rt, shamt;
 	 wire clock_pc, is_alu, is_addi, is_add, is_sub, is_lw, is_ovf, is_add_ovf, is_sub_ovf, is_addi_ovf, isNotEqual, isLessThan,overflow, is_sw;
-	 /*new*/
 	 wire is_j, is_jal, is_jr, is_bne, is_blt, is_bex, is_setx;
 	 wire[31:0] T;
 	 
@@ -125,13 +125,13 @@ module processor(
 	 assign is_sw = Opcode == 5'b0011_1 ? 1'b1 : 1'b0; 	//Opcode:00111
 	 assign is_lw = Opcode == 5'b0100_0 ? 1'b1 : 1'b0; 	//Opcode:01000
 	 
-	 assign is_j = Opcode == 5'b0000_1 ? 1'b1 : 1'b0; 	//Opcode: 00001
+	 assign is_j = Opcode == 5'b0000_1 ? 1'b1 : 1'b0; 		//Opcode: 00001
 	 assign is_bne = Opcode == 5'b0001_0 ? 1'b1 : 1'b0;	//Opcode: 00010
-	 assign is_jal = Opcode == 5'b0001_1 ? 1'b1 : 1'b0; //Opcode: 00011
-	 assign is_jr = Opcode == 5'b0010_0 ? 1'b1 : 1'b0; 	// Opcode； 00100
-	 assign is_blt = Opcode == 5'b0011_0 ? 1'b1 : 1'b0; // Opcode； 00110
-	 assign is_bex = Opcode == 5'b1011_0 ? 1'b1 : 1'b0; //Opcode: 10110
-	 assign is_setx = Opcode == 5'b1010_1 ? 1'b1 : 1'b0; //Opcode: 10101
+	 assign is_jal = Opcode == 5'b0001_1 ? 1'b1 : 1'b0; 	//Opcode: 00011
+	 assign is_jr = Opcode == 5'b0010_0 ? 1'b1 : 1'b0; 	//Opcode； 00100
+	 assign is_blt = Opcode == 5'b0011_0 ? 1'b1 : 1'b0; 	//Opcode； 00110
+	 assign is_bex = Opcode == 5'b1011_0 ? 1'b1 : 1'b0; 	//Opcode: 10110
+	 assign is_setx = Opcode == 5'b1010_1 ? 1'b1 : 1'b0; 	//Opcode: 10101
 	 
 	 
 	 //Assign the ALU_op
@@ -179,7 +179,7 @@ module processor(
 	 assign ctrl_readRegB = is_bex ? 5'd30 : ((is_sw | is_jr| is_bne | is_blt) ? rd : rt); // is_bex指令时读取$rstatus
 	 assign ctrl_writeReg = (q_imem == 32'd0 || is_setx) ? 5'd30 : (is_jal ? 5'd31 : (is_ovf ? 5'd30 : rd));    // nop指令强制ctrl_writeReg为$30,跳出闭环。is_jal指令时，写入$r31。
 	 assign data_writeReg = is_setx ? T : (is_jal? pc + 32'b1 : (is_ovf ? ovf_label :(is_lw ? q_dmem : data_result))); // is_jal指令时，写入内容为pc+1
-	 assign ctrl_writeEnable = is_sw ? 1'b0 : 1'b1;
+	 assign ctrl_writeEnable = (is_sw | is_j | is_bne | is_jr | is_blt | is_bex) ? 1'b0 : 1'b1;
 	 
 	 
 	 /**********Step6 : Next Instruction***********/
@@ -190,21 +190,19 @@ module processor(
 
 endmodule
 
-
+//这是一个玄学模块。if嵌套使用时结果出错。并且pc默认加一为什么可以执行？
 module get_pc_next(pc, is_j, is_bne, is_jal, is_jr, is_blt, is_bex, T, sx_N, data_readRegA, data_readRegB, pc_next);
 	input is_j, is_bne, is_jal, is_jr, is_blt, is_bex;
 	input[31:0] pc, T, sx_N, data_readRegA, data_readRegB;
 	output reg[31:0] pc_next;
 	
-	always @(*) begin 
+	always @(is_j, is_bne, is_jal, is_jr, is_blt, is_bex) begin 
 		if (is_j == 1'b1) begin
 			pc_next = T; 
 		end
 		
-		else if (is_bne == 1'b1) begin
-			if (data_readRegA != data_readRegB) begin // Reg_A(rs) != Reg_B(rd)
+		else if (is_bne == 1'b1 && data_readRegA != data_readRegB) begin // Reg_A(rs) != Reg_B(rd)
 				pc_next  = pc + 32'b1 + sx_N;
-			end
 		end
 		
 		else if (is_jal == 1'b1) begin
@@ -215,20 +213,16 @@ module get_pc_next(pc, is_j, is_bne, is_jal, is_jr, is_blt, is_bex, T, sx_N, dat
 			pc_next = data_readRegB; //Reg_B = Rd
 		end
 		
-		else if (is_blt == 1'b1) begin
-			if (data_readRegB < data_readRegA) begin // Reg_B(rd) < Reg_A(rs)
+		else if (is_blt == 1'b1 && data_readRegB < data_readRegA) begin  // Reg_B(rd) < Reg_A(rs)
 				pc_next = pc + 32'b1 + sx_N;
-			end
 		end
 		
-		else if (is_bex == 1'b1) begin
-			if (data_readRegB != 32'b0) begin
+		else if (is_bex == 1'b1 && data_readRegB != 32'b0) begin
 				pc_next= T;
-			end
 		end
 		
 		else begin
-			pc_next = pc + 32'b1;
+			pc_next = pc + 32'b1;   //存疑？
 		end
 	
 	end
