@@ -4,13 +4,15 @@
 
 module skeleton_test(clock, reset, test,   //input
 
-							t_ctrl_writeEnable, t_ctrl_writeReg, t_ctrl_readRegA, t_ctrl_readRegB,
-							t_data_writeReg, t_data_readRegA, t_data_readRegB, 
+							t_ctrl_writeEnable, t_ctrl_writeReg, t_ctrl_readRegA, t_ctrl_readRegB, t_data_writeReg,//无用
+							 
+							t_data_readRegA, t_data_readRegB,   //t_data_readRegA反映regfile真实读出的值
 							
 							o_ctrl_writeEnable, o_ctrl_writeReg, o_data_writeReg,
 							
-							t_test_out,t_test3_out,   
-							//t_test2_out,t_test4_out  //暂时无用
+							t_regfile_clk, t_address_imem,   
+							r_ctrl_readRegA, r_ctrl_readRegB,  //测试，看读取哪个寄存器
+							counter_out
 							);
     input clock, reset, test;
 	 
@@ -30,6 +32,9 @@ module skeleton_test(clock, reset, test,   //input
     assign regfile_clock = stu_regfile_clock;
 
     skeleton student_skeleton(clock, reset, stu_imem_clock, stu_dmem_clock, stu_processor_clock, stu_regfile_clock);
+										
+	//test
+	output counter_out;
 
 
 	// Test reg file
@@ -40,12 +45,12 @@ module skeleton_test(clock, reset, test,   //input
    output [31:0] t_data_readRegA, t_data_readRegB;
 	
 
-	//output [31:0] t_test2_out, t_test4_out;
+	output [31:0] r_ctrl_readRegA, r_ctrl_readRegB;      /////////////for test///////////////
 	
-	output t_test_out;
-	assign t_test_out = stu_regfile_clock;   	/////////////for test///////////////
-	output [11:0] t_test3_out;
-	assign t_test3_out = address_imem;   		/////////////for test///////////////
+	output t_regfile_clk;
+	assign t_regfile_clk = stu_regfile_clock;   	/////////////for test///////////////
+	output [11:0] t_address_imem;
+	assign t_address_imem = address_imem;   		/////////////for test///////////////
 	
 	output o_ctrl_writeEnable;
 	output [4:0] o_ctrl_writeReg;
@@ -84,11 +89,11 @@ module skeleton_test(clock, reset, test,   //input
 	 wire [31:0] r_data_writeReg;
 	 wire [31:0] r_data_readRegA, r_data_readRegB;
 	 
-	 mux_2_1bit	mux0(ctrl_writeEnable, t_ctrl_writeEnable, test, r_ctrl_writeEnable);  //test=0时选择ctrl_writeEnable
+	 mux_2_1bit	 mux0(ctrl_writeEnable, t_ctrl_writeEnable, test, r_ctrl_writeEnable);  //test=0时选择ctrl_writeEnable
 	 mux_2_5bit  mux1(ctrl_writeReg, t_ctrl_writeReg, test, r_ctrl_writeReg);
 	 mux_2_5bit  mux2(ctrl_readRegA, t_ctrl_readRegA, test, r_ctrl_readRegA);
 	 mux_2_5bit  mux3(ctrl_readRegB, t_ctrl_readRegB, test, r_ctrl_readRegB);
-	 mux_2 		mux4(data_writeReg, t_data_writeReg, test, r_data_writeReg);
+	 mux_2 		 mux4(data_writeReg, t_data_writeReg, test, r_data_writeReg);
 	 
 	 assign t_data_readRegA = r_data_readRegA;  //无论test为何值，t_data_readRegA反映regfile真实读出的值
 	 assign t_data_readRegB = r_data_readRegB;
@@ -129,7 +134,10 @@ module skeleton_test(clock, reset, test,   //input
 		  ctrl_readRegB,                  // O: Register to read from port B of regfile
 		  data_writeReg,                  // O: Data to write to for regfile
 		  r_data_readRegA,                // I: Data from port A of regfile
-		  r_data_readRegB                 // I: Data from port B of regfile
+		  r_data_readRegB,                 // I: Data from port B of regfile
+		  
+		  //test
+		  counter_out
 	 );
 	 
 	 assign o_ctrl_writeEnable = ctrl_writeEnable;  //processor直接输出

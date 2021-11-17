@@ -69,8 +69,10 @@ module processor(
     ctrl_readRegB,                  // O: Register to read from port B of regfile
     data_writeReg,                  // O: Data to write to for regfile
     data_readRegA,                  // I: Data from port A of regfile
-    data_readRegB                   // I: Data from port B of regfile
+    data_readRegB,                   // I: Data from port B of regfile
 	 
+	 //test
+	 counter_out
 );
     // Control signals
     input clock, reset;
@@ -96,9 +98,10 @@ module processor(
 	 wire[31:0] pc, pc_next;
 	 wire[31:0] data_operandA, data_operandB, data_result, sx_N, ovf_label;
 	 wire[4:0] Opcode, ALU_op, rd, rs, rt, shamt;
-	 wire clock_pc, is_alu, is_addi, is_add, is_sub, is_lw, is_ovf, is_add_ovf, is_sub_ovf, is_addi_ovf, isNotEqual, isLessThan,overflow, is_sw;
+	 wire clock_pc,is_alu, is_addi, is_add, is_sub, is_lw, is_ovf, is_add_ovf, is_sub_ovf, is_addi_ovf, isNotEqual, isLessThan,overflow, is_sw;
 	 wire is_j, is_jal, is_jr, is_bne, is_blt, is_bex, is_setx;
 	 wire[31:0] T;
+	 
 	 
 	 
 	 
@@ -170,7 +173,7 @@ module processor(
 	 assign address_dmem = data_result[11:0];
 	 assign data = data_readRegB;
 	 
-	 wire counter_out;
+	 output counter_out;   //test
 	 counter my_counter(.clock(~clock), .insn_num(address_imem), .out(counter_out));
 	 assign wren = is_sw & counter_out;
 	 
@@ -202,7 +205,7 @@ module get_pc_next(pc, is_j, is_bne, is_jal, is_jr, is_blt, is_bex, T, sx_N, dat
 		end
 		
 		else if (is_bne == 1'b1 && data_readRegA != data_readRegB) begin // Reg_A(rs) != Reg_B(rd)
-				pc_next  = pc + 32'b1 + sx_N;
+			pc_next  = pc + 32'b1 + sx_N;
 		end
 		
 		else if (is_jal == 1'b1) begin
@@ -214,11 +217,11 @@ module get_pc_next(pc, is_j, is_bne, is_jal, is_jr, is_blt, is_bex, T, sx_N, dat
 		end
 		
 		else if (is_blt == 1'b1 && data_readRegB < data_readRegA) begin  // Reg_B(rd) < Reg_A(rs)
-				pc_next = pc + 32'b1 + sx_N;
+			pc_next = pc + 32'b1 + sx_N;
 		end
 		
 		else if (is_bex == 1'b1 && data_readRegB != 32'b0) begin
-				pc_next= T;
+			pc_next= T;
 		end
 		
 		else begin
@@ -232,7 +235,8 @@ endmodule
 
 
 // use to count posedge edge to generate wren to dmem
-module counter (clock,insn_num,out);
+//考虑延时情况下，无法和PC——clock对齐，导致dmem无法写入
+module counter (clock, insn_num, out);
  input clock;
  input[11:0] insn_num;
  output reg out;
@@ -275,11 +279,3 @@ module counter (clock,insn_num,out);
  end
 
 endmodule
-
-
-
-
-
-
-
-
